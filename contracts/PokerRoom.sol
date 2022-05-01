@@ -315,7 +315,7 @@ contract PokerRoom is Ownable {
 
         uint256[N_PRIVATE_CARDS] memory privateCards;
         for(uint i = 0; i < N_PRIVATE_CARDS; ++i) {
-            privateCards[i] = PokerUtils.decipher(cardHashes[gameId][position][i], privatePower, cipher_modulo);
+            privateCards[i] = PokerUtils.decipherCard(cardHashes[gameId][position][i], privatePower, cipher_modulo);
         }
         uint256[N_PUBLIC_CARDS] memory gamePublicCards;
         for (uint i = 0;i < N_PUBLIC_CARDS; ++i) {

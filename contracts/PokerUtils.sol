@@ -139,11 +139,52 @@ library PokerUtils {
     }
 
     function checkClaimedHandWithPrivate(uint256 hand, uint256[5] memory cardIds,  uint256[2] memory privateIds) internal pure returns(bool) {
+        for(uint i = 0; i < 5; ++i) {
+            uint8 card = uint8(hand % nCards);
+            hand = hand / nCards;
+            bool foundEq = false;
+            for(uint j = 0;j < 5; ++j) {
+                if (card == cardIds[j]) {
+                    foundEq = true;
+                    break;
+                }
+            }
+            for(uint j = 0;j < 2; ++j) {
+                if (card == privateIds[j]) {
+                    foundEq = true;
+                    break;
+                }
+            }
+            if(!foundEq) {
+                return false;
+            }
+        }
+        
         return true;
     }
 
-    function decipher(uint256 cardHash, uint256 privatePower, uint256 primeModulo) public returns(uint256) {
+    function decipherCard(uint256 cardHash, uint256 privatePower, uint256 primeModulo) public pure returns(uint256) {
+        for (uint256 cardId = 0; cardId < 52; ++cardId) {
+            if (powerByModulo(cardId + 2, privatePower, primeModulo) == cardHash) {
+                return cardId;
+            }
+        }
+        require(false, "Expected valid card id as input");
         return 0;
+    }
+
+    function powerByModulo(uint256 x, uint256 power, uint256 modulo) public pure returns(uint256) {
+        uint256 result = 1;
+        while (power > 0) {
+            if (power % 2 == 1) {
+                result *= x;
+                result %= modulo;
+            }
+            power /= 2;
+            x *= x;
+            x %= modulo;
+        }
+        return result;
     }
 }
 
