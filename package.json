@@ -1,0 +1,28 @@
+{
+  "name": "chain-poker-contract",
+  "version": "1.0.0",
+  "description": "# Develop",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whynft/chain-poker-contract.git"
+  },
+  "keywords": [
+    "solidity",
+    "truffle"
+  ],
+  "author": "WhyNft",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/whynft/chain-poker-contract/issues"
+  },
+  "homepage": "https://github.com/whynft/chain-poker-contract#readme",
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^2.0.1",
+    "dotenv": "^14.3.2",
+    "@openzeppelin/contracts": "^4.4.2"
+  }
+}

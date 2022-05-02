@@ -9,7 +9,7 @@ pragma solidity >=0.7.0 <0.9.0;
  */
 library PokerUtils {
     uint8 private constant nCards = 52;
-    
+
     uint8 private constant HIGH_CARD = 0;
 	uint8 private constant ONE_PAIR = 1;
 	uint8 private constant TWO_PAIR = 2;
@@ -20,13 +20,24 @@ library PokerUtils {
 	uint8 private constant FOUR_OF_A_KIND = 7;
 	uint8 private constant STRAIGHT_FLUSH = 8;
 
+    enum CombinationType {
+        HIGH_CARD,
+        ONE_PAIR,
+        TWO_PAIR,
+        THREE_OF_A_KIND,
+        STRAIGHT,
+        FLUSH,
+        FULL_HOUSE,
+        FOUR_OF_A_KIND,
+        STRAIGHT_FLUSH
+    }
+
 	uint256 private constant TOTAL_5_CARD_COMBINATIONS = 52 ** 5;
-	
+
 	function calcHandRank(uint256 hand, uint8 combination) pure internal returns(uint256) {
 	    return TOTAL_5_CARD_COMBINATIONS * combination + hand;
 	}
-    
-    
+
     function checkNCardsEqual(uint256 hand, uint8 size, uint8 offset) pure internal returns(bool) {
         uint8 goldenCardId = nCards;
         for(uint i = 0; i < 5; ++i) {
@@ -45,7 +56,7 @@ library PokerUtils {
         }
         return true;
     }
-    
+
     function checkFlush(uint256 hand) pure internal returns(bool) {
         uint8 goldenType = nCards;
         for(uint i = 0; i < 5; ++i) {
@@ -62,8 +73,8 @@ library PokerUtils {
         }
         return true;
     }
-    
-    
+
+
     function checkStraight(uint256 hand) pure internal returns(bool) {
         uint8 lastId = nCards;
         for(uint i = 0; i < 5; ++i) {
@@ -71,7 +82,7 @@ library PokerUtils {
             uint8 cardId = card / 4;
             hand = hand / nCards;
             if (i > 0) {
-                if (cardId + 1 != lastId) {
+                if (cardId != lastId + 1) {
                     return false;
                 }
             }
@@ -79,46 +90,47 @@ library PokerUtils {
         }
         return true;
     }
-    
-    
-    function checkClaimedCombination(uint256 claimedHand, uint8 claimedCombination) internal pure returns(bool) {
-        if (claimedCombination == HIGH_CARD) {
+
+
+    function checkClaimedCombination(uint256 claimedHand, uint8 claimedCombinationCode) internal pure returns(bool) {
+        CombinationType claimedCombination = CombinationType(claimedCombinationCode);
+        if (claimedCombination == CombinationType.HIGH_CARD) {
             return true;
         }
-        if (claimedCombination == ONE_PAIR) {
+        if (claimedCombination == CombinationType.ONE_PAIR) {
             return checkNCardsEqual(claimedHand, 2, 0);
         }
-        
-        if (claimedCombination == TWO_PAIR) {
+
+        if (claimedCombination == CombinationType.TWO_PAIR) {
             return checkNCardsEqual(claimedHand, 2, 0) && checkNCardsEqual(claimedHand, 2, 2);
         }
-        
-        if (claimedCombination == THREE_OF_A_KIND) {
+
+        if (claimedCombination == CombinationType.THREE_OF_A_KIND) {
             return checkNCardsEqual(claimedHand, 3, 0);
         }
-        
-        if (claimedCombination == STRAIGHT) {
+
+        if (claimedCombination == CombinationType.STRAIGHT) {
             return checkStraight(claimedHand);
         }
-        
-        if (claimedCombination == FLUSH) {
+
+        if (claimedCombination == CombinationType.FLUSH) {
             return checkFlush(claimedHand);
         }
-        
-        if (claimedCombination == FULL_HOUSE) {
+
+        if (claimedCombination == CombinationType.FULL_HOUSE) {
             return checkNCardsEqual(claimedHand, 3, 0) && checkNCardsEqual(claimedHand, 2, 3);
         }
-        
-        if (claimedCombination == FOUR_OF_A_KIND) {
+
+        if (claimedCombination == CombinationType.FOUR_OF_A_KIND) {
             return checkNCardsEqual(claimedHand, 4, 0);
         }
-        
-        if (claimedCombination == STRAIGHT_FLUSH) {
+
+        if (claimedCombination == CombinationType.STRAIGHT_FLUSH) {
             return checkStraight(claimedHand) && checkFlush(claimedHand);
         }
         return false;
     }
-    
+
     function checkClaimedHand(uint256 hand, uint8[5] memory cardIds) internal pure returns(bool) {
         for(uint i = 0; i < 5; ++i) {
             uint8 card = uint8(hand % nCards);
@@ -134,7 +146,7 @@ library PokerUtils {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -159,7 +171,7 @@ library PokerUtils {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -187,4 +199,3 @@ library PokerUtils {
         return result;
     }
 }
-

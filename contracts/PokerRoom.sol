@@ -94,7 +94,7 @@ contract PokerRoom is Ownable {
     }
 
     modifier gameStateIsTurn(uint256 gameId) {
-        require(gameState[gameId] == GameState.PREFLOP 
+        require(gameState[gameId] == GameState.PREFLOP
             || gameState[gameId] == GameState.FLOP
             || gameState[gameId] == GameState.TURN
             || gameState[gameId] == GameState.RIVER
@@ -115,10 +115,10 @@ contract PokerRoom is Ownable {
         }
         uint position = players[gameId].length;
         if (position == SMALL_BLIND_POSITION % N_PLAYERS) {
-            require(msg.value >= gameFee + smallBlinds[gameId]);
+            require(msg.value >= gameFee + smallBlinds[gameId], "need more money for smallBlind");
         }
         if (position == BIG_BLIND_POSITION % N_PLAYERS) {
-            require(msg.value >= gameFee + 2 * smallBlinds[gameId]);
+            require(msg.value >= gameFee + 2 * smallBlinds[gameId], "need more money for bigBlind");
         }
         _;
     }
@@ -135,13 +135,14 @@ contract PokerRoom is Ownable {
         payable(_address).transfer(amount);
     }
 
-    function createGame() public payable costs(gameFee) {
+    function createGame() public payable costs(gameFee) returns(uint256) {
         uint256 newGameId = _gameCount.current();
         uint256 bigBlind = msg.value - gameFee;
         uint256 smallBlind = bigBlind / 2;
         smallBlinds.push(smallBlind);
         maxPot.push(0);
         winner.push(address(0));
+        actionExpectedFrom.push(address(0));
         winnerRank.push(0);
         address[] memory newPlayers;
         players.push(newPlayers);
@@ -155,26 +156,20 @@ contract PokerRoom is Ownable {
         uint256[N_PUBLIC_CARDS] memory newCardsHashes;
         publicCardsHashes.push(newCardsHashes);
 
-        uint256[][] memory hashes = new uint256[][](N_PLAYERS);
+        uint256[N_PLAYERS][N_PRIVATE_CARDS] memory hashes;
         cardHashes.push(hashes);
         gameState.push(GameState.WAITING);
         enterGame(newGameId);
+        return newGameId;
     }
 
-    function enterGame(uint256 gameId) public payable 
+    function enterGame(uint256 gameId) public payable
             gameIsExist(gameId)
             gameStateEquals(GameState.WAITING, gameId)
             canJoinGame(gameId) {
         uint position = players[gameId].length;
         player2position[gameId][msg.sender] = position;
         players[gameId].push(msg.sender);
-        cardHashes[gameId].push(new uint256[](N_PRIVATE_CARDS));
-
-        if (players[gameId].length == N_PLAYERS) {
-            gameState[gameId] = GameState.DEALING;
-            actionExpectedFrom[gameId] = players[gameId][DEALER_POSITION];
-        }
-
         uint256 pot = 0;
         if (position == SMALL_BLIND_POSITION) {
             pot = smallBlinds[gameId];
@@ -186,6 +181,11 @@ contract PokerRoom is Ownable {
             maxPot[gameId] = pot;
         }
         pots[gameId].push(pot);
+
+        if (players[gameId].length == N_PLAYERS) {
+            gameState[gameId] = GameState.DEALING;
+            actionExpectedFrom[gameId] = players[gameId][DEALER_POSITION];
+        }
     }
 
     // DEALING:
@@ -204,7 +204,7 @@ contract PokerRoom is Ownable {
         uint256[] memory nextPlayerHashes = new uint256[](N_PRIVATE_CARDS);
         nextPlayerHashes[0] = card1Hash;
         nextPlayerHashes[1] = card2Hash;
-        require(cardHashes[gameId][nextPosition].length == N_PRIVATE_CARDS);
+        require(cardHashes[gameId][nextPosition].length == N_PRIVATE_CARDS, "unexpected number of cardHashes");
         for (uint i = 0;i < N_PRIVATE_CARDS; ++i) {
             require(cardHashes[gameId][nextPosition][i] == 0);
             cardHashes[gameId][nextPosition][i] = nextPlayerHashes[i];
@@ -220,7 +220,7 @@ contract PokerRoom is Ownable {
     // FLOP
     // TURN
     // RIVER
-    function makeTurn(uint256 gameId, uint8 gameStateCode, uint8 actionTypeCode) public payable 
+    function makeTurn(uint256 gameId, uint8 gameStateCode, uint8 actionTypeCode) public payable
             gameIsExist(gameId)
             gameStateEquals(GameState(gameStateCode), gameId)
             actionExpectedFromPlayer(gameId)
@@ -262,7 +262,7 @@ contract PokerRoom is Ownable {
     // OPEN_FLOP
     // OPEN_TURN
     // OPEN_RIVER
-    // Basic action - second player choose some hashes and supply them signed by first player, 
+    // Basic action - second player choose some hashes and supply them signed by first player,
     // also first player supply values of the hashes
     function openNextCards(
         uint256 gameId,
@@ -346,5 +346,4 @@ contract PokerRoom is Ownable {
         payable(msg.sender).transfer(totalPot);
     }
 }
-
 
