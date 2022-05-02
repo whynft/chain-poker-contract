@@ -35,7 +35,15 @@ library PokerUtils {
 	uint256 private constant TOTAL_5_CARD_COMBINATIONS = 52 ** 5;
 
 	function calcHandRank(uint256 hand, uint8 combination) pure internal returns(uint256) {
-	    return TOTAL_5_CARD_COMBINATIONS * combination + hand;
+        uint256 handRank = 0;
+        for (uint i = 0; i < 5; ++i) {
+            uint8 card = uint8(hand % nCards);
+            uint8 cardId = card / 4;
+            hand = hand / nCards;
+            handRank *= 13;
+            handRank += cardId;
+        }
+	    return TOTAL_5_CARD_COMBINATIONS * combination + handRank;
 	}
 
     function checkNCardsEqual(uint256 hand, uint8 size, uint8 offset) pure internal returns(bool) {

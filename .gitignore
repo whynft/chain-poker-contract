@@ -9,4 +9,4 @@ node_modules/
 
 # python
 *.pyc
-*.iphynb_checkpoints
+*.ipynb_checkpoints

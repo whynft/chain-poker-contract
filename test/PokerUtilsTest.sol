@@ -9,56 +9,78 @@ import "../contracts/PokerUtils.sol";
 contract PokerUtilsTest {
     function testCalcRankFromCombinationAndHand() public {
         uint256 numberOf5CardCombinations = 52 ** 5;
-        Assert.equal(PokerUtils.calcHandRank(1, 0), 1, "wrong card rank");
-        Assert.equal(PokerUtils.calcHandRank(0, 1), numberOf5CardCombinations, "wrong card rank");
-        Assert.equal(PokerUtils.calcHandRank(1, 2), 2 * numberOf5CardCombinations + 1, "wrong card rank");
-        Assert.equal(PokerUtils.calcHandRank(numberOf5CardCombinations - 1, 2),
-            2 * numberOf5CardCombinations + (numberOf5CardCombinations - 1), "wrong card rank");
+        uint256 combinationTwoPairs = makeCombinationIdFrom5CardHand(
+            [
+                makeCardIdFromPair([7, 1]),
+                makeCardIdFromPair([7, 2]),
+                makeCardIdFromPair([5, 0]),
+                makeCardIdFromPair([5, 1]),
+                makeCardIdFromPair([9, 3])
+            ]
+        );
+
+        uint256 combinationSet = makeCombinationIdFrom5CardHand(
+            [
+                makeCardIdFromPair([7, 1]),
+                makeCardIdFromPair([7, 2]),
+                makeCardIdFromPair([7, 0]),
+                makeCardIdFromPair([6, 1]),
+                makeCardIdFromPair([9, 3])
+            ]
+        );
+        Assert.equal(PokerUtils.calcHandRank(combinationTwoPairs, 2), numberOf5CardCombinations * 2
+        + 9 + 13 * (5 + 13 * (5 + 13 * (7 + 13 * 7))), "wrong card rank, test two pairs");
+        Assert.equal(PokerUtils.calcHandRank(combinationSet, 3), numberOf5CardCombinations * 3
+        + 9 + 13 * (6 + 13 * (7 + 13 * (7 + 13 * 7))), "wrong card rank, test set");
+
     }
 
-//    function testCompareRanks() public {
-//        uint256 combinationTwoPairs0 = makeCombinationIdFrom5CardHand(
-//            [
-//                makeCardIdFromPair([7, 0]),
-//                makeCardIdFromPair([7, 2]),
-//                makeCardIdFromPair([5, 0]),
-//                makeCardIdFromPair([5, 1]),
-//                makeCardIdFromPair([9, 3])
-//            ]
-//        );
-//
-//        uint256 combinationTwoPairs1 = makeCombinationIdFrom5CardHand(
-//            [
-//                makeCardIdFromPair([7, 1]),
-//                makeCardIdFromPair([7, 2]),
-//                makeCardIdFromPair([5, 0]),
-//                makeCardIdFromPair([5, 1]),
-//                makeCardIdFromPair([9, 3])
-//            ]
-//        );
-//
-//        uint256 combinationTwoPairs2 = makeCombinationIdFrom5CardHand(
-//            [
-//                makeCardIdFromPair([7, 1]),
-//                makeCardIdFromPair([7, 2]),
-//                makeCardIdFromPair([6, 0]),
-//                makeCardIdFromPair([6, 1]),
-//                makeCardIdFromPair([9, 3])
-//            ]
-//        );
-//
-//        uint256 combinationTwoPairs3 = makeCombinationIdFrom5CardHand(
-//            [
-//                makeCardIdFromPair([7, 1]),
-//                makeCardIdFromPair([7, 2]),
-//                makeCardIdFromPair([5, 0]),
-//                makeCardIdFromPair([5, 1]),
-//                makeCardIdFromPair([10, 3])
-//            ]
-//        );
-//
-//        Assert.equal(PokerUtils.calcHandRank(,2));
-//    }
+    function testCompareRanks() public {
+        uint256 combinationTwoPairs0 = makeCombinationIdFrom5CardHand(
+            [
+                makeCardIdFromPair([7, 0]),
+                makeCardIdFromPair([7, 2]),
+                makeCardIdFromPair([5, 0]),
+                makeCardIdFromPair([5, 1]),
+                makeCardIdFromPair([9, 3])
+            ]
+        );
+
+        uint256 combinationTwoPairs1 = makeCombinationIdFrom5CardHand(
+            [
+                makeCardIdFromPair([7, 1]),
+                makeCardIdFromPair([7, 2]),
+                makeCardIdFromPair([5, 0]),
+                makeCardIdFromPair([5, 1]),
+                makeCardIdFromPair([9, 3])
+            ]
+        );
+
+        uint256 combinationTwoPairs2 = makeCombinationIdFrom5CardHand(
+            [
+                makeCardIdFromPair([7, 1]),
+                makeCardIdFromPair([7, 2]),
+                makeCardIdFromPair([6, 0]),
+                makeCardIdFromPair([6, 1]),
+                makeCardIdFromPair([9, 3])
+            ]
+        );
+
+        uint256 combinationTwoPairs3 = makeCombinationIdFrom5CardHand(
+            [
+                makeCardIdFromPair([7, 1]),
+                makeCardIdFromPair([7, 2]),
+                makeCardIdFromPair([5, 0]),
+                makeCardIdFromPair([5, 1]),
+                makeCardIdFromPair([10, 3])
+            ]
+        );
+
+        Assert.equal(PokerUtils.calcHandRank(combinationTwoPairs0, 2) == PokerUtils.calcHandRank(combinationTwoPairs1, 2), true, "expect equal ranks");
+        Assert.equal(PokerUtils.calcHandRank(combinationTwoPairs0, 2) < PokerUtils.calcHandRank(combinationTwoPairs2, 2), true, "expect second combination more first");
+        Assert.equal(PokerUtils.calcHandRank(combinationTwoPairs3, 2) < PokerUtils.calcHandRank(combinationTwoPairs2, 2), true, "expect second combination more third");
+        Assert.equal(PokerUtils.calcHandRank(combinationTwoPairs1, 2) < PokerUtils.calcHandRank(combinationTwoPairs3, 2), true, "expect third combination more first");
+    }
 
     function testCheckNCardsEqual() public {
         uint256 combinationSet = makeCombinationIdFrom5CardHand(
