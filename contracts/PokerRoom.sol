@@ -41,8 +41,9 @@ contract PokerRoom is Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _gameCount;
 
-    uint256 private cipher_modulo;
-    uint256 private gameFee;
+    uint256 public cipherModulo;
+    uint256 public gameFee;
+
     address[][] private players;
     uint256[][][] private cardHashes;
     uint256[] private smallBlinds;
@@ -58,9 +59,9 @@ contract PokerRoom is Ownable {
     mapping(uint => mapping(address => uint)) private player2position;
 
 
-    constructor(uint256 gameFee_, uint256 cipher_modulo_) {
+    constructor(uint256 gameFee_, uint256 cipherModulo_) {
         gameFee = gameFee_;
-        cipher_modulo = cipher_modulo_;
+        cipherModulo = cipherModulo_;
         OPEN_CARDS_AT_STATE[GameState.OPEN_FLOP] = 3;
         OPEN_CARDS_AT_STATE[GameState.OPEN_TURN] = 4;
         OPEN_CARDS_AT_STATE[GameState.OPEN_RIVER] = 5;
@@ -127,8 +128,8 @@ contract PokerRoom is Ownable {
         gameFee = gameFee_;
     }
 
-    function setCipherModulo(uint256 cipher_modulo_) public onlyOwner {
-        cipher_modulo = cipher_modulo_;
+    function setCipherModulo(uint256 cipherModulo_) public onlyOwner {
+        cipherModulo = cipherModulo_;
     }
 
     function widthdraw(address _address, uint256 amount) public payable onlyOwner {
@@ -315,7 +316,7 @@ contract PokerRoom is Ownable {
 
         uint256[N_PRIVATE_CARDS] memory privateCards;
         for(uint i = 0; i < N_PRIVATE_CARDS; ++i) {
-            privateCards[i] = PokerUtils.decipherCard(cardHashes[gameId][position][i], privatePower, cipher_modulo);
+            privateCards[i] = PokerUtils.decipherCard(cardHashes[gameId][position][i], privatePower, cipherModulo);
         }
         uint256[N_PUBLIC_CARDS] memory gamePublicCards;
         for (uint i = 0;i < N_PUBLIC_CARDS; ++i) {
