@@ -148,7 +148,7 @@ contract PokerRoom is Ownable {
         address[] memory newPlayers;
         players.push(newPlayers);
 
-        uint256[] memory newPots;
+        uint256[N_PLAYERS] memory newPots;
         pots.push(newPots);
 
         uint256[N_PUBLIC_CARDS] memory newCards;
@@ -175,13 +175,13 @@ contract PokerRoom is Ownable {
         if (position == SMALL_BLIND_POSITION) {
             pot = smallBlinds[gameId];
         }
-        if (position == BIG_BLIND_POSITION) {
+        if (position == BIG_BLIND_POSITION % N_PLAYERS) {
             pot = 2 * smallBlinds[gameId];
         }
         if (pot > maxPot[gameId]) {
             maxPot[gameId] = pot;
         }
-        pots[gameId].push(pot);
+        pots[gameId][position] = pot;
 
         if (players[gameId].length == N_PLAYERS) {
             gameState[gameId] = GameState.DEALING;
@@ -201,6 +201,7 @@ contract PokerRoom is Ownable {
             gameIsExist(gameId)
             gameStateEquals(GameState.DEALING, gameId)
             actionExpectedFromPlayer(gameId) {
+        uint position = player2position[gameId][msg.sender];
         uint nextPosition = (player2position[gameId][msg.sender] + 1) % N_PLAYERS;
         uint256[] memory nextPlayerHashes = new uint256[](N_PRIVATE_CARDS);
         nextPlayerHashes[0] = card1Hash;
@@ -210,10 +211,12 @@ contract PokerRoom is Ownable {
             require(cardHashes[gameId][nextPosition][i] == 0);
             cardHashes[gameId][nextPosition][i] = nextPlayerHashes[i];
         }
+
         actionExpectedFrom[gameId] = players[gameId][nextPosition];
 
         if (nextPosition == DEALER_POSITION) {
             gameState[gameId] = GameState.PREFLOP;
+            actionExpectedFrom[gameId] = players[gameId][(BIG_BLIND_POSITION + 1) % N_PLAYERS];
         }
     }
 
@@ -246,7 +249,8 @@ contract PokerRoom is Ownable {
         }
 
         if (action == ActionType.CALL) {
-            require(maxPot[gameId] <= pots[gameId][position] + msg.value);
+            require(maxPot[gameId] > pots[gameId][position], "expect call is needed");
+            require(maxPot[gameId] <= pots[gameId][position] + msg.value, "not enough value for calling");
             pots[gameId][position] = maxPot[gameId];
         }
 
@@ -255,7 +259,7 @@ contract PokerRoom is Ownable {
                 "Can't do check, action should be call/raise/fold");
         }
 
-        if (nextPosition == DEALER_POSITION && maxPot[gameId] == pots[gameId][nextPosition]) {
+        if (position == DEALER_POSITION && maxPot[gameId] == pots[gameId][nextPosition]) {
             gameState[gameId] = GameState(gameStateCode + 1);
         }
     }
