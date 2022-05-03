@@ -7,9 +7,8 @@ async function shouldThrow(promise) {
         return;
     }
     assert(false, "The contract did not throw.");
-
 }
 
-module.exports = {
-  shouldThrow,
+module.exports = function(deployer) {
+    shouldThrow
 };

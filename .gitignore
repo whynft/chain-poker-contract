@@ -1,6 +1,6 @@
 # dev
 node_modules/
-build/contracts/
+build/contracts/*
 
 # IDE
 .idea/
