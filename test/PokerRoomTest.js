@@ -8,7 +8,7 @@ const defaultSmallBlind = 10 * defaultFeeWei;
 
 const gameId = 0;
 
-var startGame = function(contractInstance, player1, player2) => {
+var startGame = async function(contractInstance, player1, player2) {
     await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei}); // should be OK
     await contractInstance.enterGame(gameId, {from: player2, value: defaultSmallBlind + defaultFeeWei}); // should be OK
 };
@@ -41,7 +41,7 @@ contract("PokerRoom", (accounts) => {
             await utils.shouldThrow(contractInstance.enterGame(gameId, {from: player3, value: defaultSmallBlind + defaultFeeWei})); // try to enter full game
         }),
         it("Submit hashes", async () => {
-            async startGame(contractInstance, player1, player2);
+            await startGame(contractInstance, player1, player2);
             const player1Card1Hash = "13159035226703211890654003961158071376254143192955391095350192585677108936704"; // P1(0)
             const player1Card2Hash = "37878010719124385700487666027363824721736664517050548994860851193330156557245"; // P1(1)
             const player2Card1Hash = "1371063945196131339848710285958978166078362773706306138144768"; // P2(2)
