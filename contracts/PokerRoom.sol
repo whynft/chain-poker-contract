@@ -35,6 +35,12 @@ contract PokerRoom is Ownable {
         RAISE
     }
 
+    event CreateGame(uint256 gameId, address player, uint256 smallBlind);
+    event EnterGame(uint256 gameid, address player, uint position);
+    event MakeTurn(uint256 gameId, address player, uint position ,ActionType action, GameState state, uint256 value);
+    event OpenPublicCards(uint256 gameId, address player, GameState state, uint256[] publicCards);
+    event OpenPrivateCards(uint256 gameId, address player, uint position);
+
     mapping(GameState => uint8) NEED_CARDS_AT_STATE;
     mapping(GameState => uint8) OPEN_CARDS_AT_STATE;
 
@@ -140,6 +146,9 @@ contract PokerRoom is Ownable {
         uint256 newGameId = _gameCount.current();
         uint256 bigBlind = msg.value - gameFee;
         uint256 smallBlind = bigBlind / 2;
+
+        emit CreateGame(newGameId, msg.sender, smallBlind);
+
         smallBlinds.push(smallBlind);
         maxPot.push(0);
         winner.push(address(0));
@@ -171,6 +180,9 @@ contract PokerRoom is Ownable {
         uint position = players[gameId].length;
         player2position[gameId][msg.sender] = position;
         players[gameId].push(msg.sender);
+
+        emit EnterGame(gameId, msg.sender, position);
+
         uint256 pot = 0;
         if (position == SMALL_BLIND_POSITION) {
             pot = smallBlinds[gameId];
@@ -235,6 +247,8 @@ contract PokerRoom is Ownable {
 
         ActionType action = ActionType(actionTypeCode);
 
+        emit MakeTurn(gameId, msg.sender, position, ActionType(actionTypeCode), GameState(gameStateCode), msg.value);
+
         if (action == ActionType.FOLD) {
             gameState[gameId] = GameState.WINNER_CHOOSEN;
             actionExpectedFrom[gameId] =  players[gameId][nextPosition];
@@ -279,22 +293,16 @@ contract PokerRoom is Ownable {
             actionExpectedFromPlayer(gameId)
             gameStateIsOpenCards(gameId) {
         uint position = player2position[gameId][msg.sender];
-        uint nextPosition = (position + 1) % N_PLAYERS;
-        actionExpectedFrom[gameId] = players[gameId][nextPosition];
-
-        if (position == DEALER_POSITION) {
-            return;
-        }
-
-        updateCardInfo(gameId, gameStateCode, newCardHashes, newCards, nextPosition);
+        actionExpectedFrom[gameId] = players[gameId][position];
+        updateCardInfo(gameId, gameStateCode, newCardHashes, newCards);
+        gameState[gameId] = GameState(gameStateCode + 1);
     }
 
     function updateCardInfo(
         uint256 gameId,
         uint256 gameStateCode,
         uint256[3] memory newCardHashes,
-        uint256[3] memory newCards,
-        uint nextPosition
+        uint256[3] memory newCards
     ) private {
         GameState state = gameState[gameId];
         uint needCards = NEED_CARDS_AT_STATE[state];
@@ -306,10 +314,7 @@ contract PokerRoom is Ownable {
             currentPublicCards[pos] = newCards[i];
             currentPublicCardsHashes[pos] = newCardHashes[i];
         }
-
-        if (nextPosition == DEALER_POSITION) {
-            gameState[gameId] = GameState(gameStateCode + 1);
-        }
+        emit OpenPublicCards(gameId, msg.sender, GameState(gameStateCode), currentPublicCards);
     }
 
     // HANDSUP

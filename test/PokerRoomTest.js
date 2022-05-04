@@ -56,32 +56,36 @@ var submitHashes = async function(contractInstance, player1, player2, p1c1h, p1c
 
 var execActionFromConfig = async function(config) {
     if (config["action"] == "makeTurn") {
-        config["contractInstance"].makeTurn(
+        await config["contractInstance"].makeTurn(
             config["gameId"],
             config["gameStateCode"],
             config["actionType"],
             {from: config["player"], value: config["value"]});
+        return;
     }
     if (config["action"] == "openCards") {
-        config["contractInstance"].openNextCards(
+        await config["contractInstance"].openNextCards(
             config["gameId"],
             config["gameStateCode"],
             config["cardHashes"],
             config["cards"],
             {from: config["player"]});
+        return;
     }
+    assert(false);
 };
 
 var execGameFromConfig = async function(commonConfig, actions) {
     await startGame(commonConfig["contractInstance"], commonConfig["players"][0], commonConfig["players"][1]);
     await submitHashes(commonConfig["contractInstance"], commonConfig["players"][0], commonConfig["players"][1], player1Card1Hash, player1Card2Hash, player2Card1Hash, player2Card2Hash);
     const commonFields = ["contractInstance", "gameId"]
-    actions.forEach(action => {
-        commonFields.forEach(field =>
-            action[field] = commonConfig[field]
-        )
-        execActionFromConfig(action)
-    });
+    for (action of actions) {
+        commonFields.forEach(field => {
+                action[field] = commonConfig[field];
+            }
+        );
+        await execActionFromConfig(action);
+    }
 };
 
 var runGameFromConfig = async function(contractInstance, player1, player2, actionsConfig, cardsConfig, betConfig) {
@@ -114,9 +118,6 @@ contract("PokerRoom", (accounts) => {
     beforeEach(async () => {
         contractInstance = await PokerRoom.new(defaultFeeWei, defaultPrimeModulo, {from: owner});
     });
-    // afterEach(async () => {
-    //    await contractInstance.kill();
-    // });
 
     context("Primitive checks", async () => {
         it("Test interface", async () => {
@@ -197,6 +198,36 @@ contract("PokerRoom", (accounts) => {
                     "player": player1,
                     "value": 0,
                     "gameStateCode": PREFLOP,
+                    "actionType": CHECK
+                },
+                {
+                    "action": "openCards",
+                    "player": player2,
+                    "value": 0,
+                    "gameStateCode": OPEN_FLOP,
+                    "cards": [flop1Card, flop2Card, flop3Card],
+                    "cardHashes": [flop1Hash, flop2Hash, flop3Hash]
+                },
+//                {
+//                    "action": "openCards",
+//                    "player": player1,
+//                    "value": 0,
+//                    "gameStateCode": OPEN_FLOP,
+//                    "cards": [0, 0, 0],
+//                    "cardHashes": [0, 0, 0]
+//                },
+                {
+                    "action": "makeTurn",
+                    "player": player2,
+                    "value": 0,
+                    "gameStateCode": FLOP,
+                    "actionType": CHECK
+                },
+                {
+                    "action": "makeTurn",
+                    "player": player1,
+                    "value": 0,
+                    "gameStateCode": FLOP,
                     "actionType": CHECK
                 }
             ]
