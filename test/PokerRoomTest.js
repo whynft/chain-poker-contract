@@ -12,7 +12,7 @@ const PRIVATE_KEY2 = 725;
 const player1Card1Hash = "13159035226703211890654003961158071376254143192955391095350192585677108936704"; // P(0, 1003)
 const player1Card2Hash = "37878010719124385700487666027363824721736664517050548994860851193330156557245"; // P(1, 1003)
 const player2Card1Hash = "1371063945196131339848710285958978166078362773706306138144768"; // P(2, 725)
-const player2Card2Hash = "47973127203639628266168456194645044912891966240061260446654987028540843575624"; // P2(3, 725)
+const player2Card2Hash = "41430621872242563686864929739397623096781312338139806270879406045932151681544"; // P2(4, 725)
 
 const gameId = 0;
 
@@ -28,6 +28,9 @@ const RIVER = 8;
 const SHOWDOWN = 9;
 const WINNER_CHOOSEN = 10;
 
+const SET = 3;
+const FULL_HOUSE = 6;
+
 const FOLD = 0;
 const CHECK = 1;
 const CALL = 2;
@@ -40,9 +43,22 @@ const flop2Hash = "3438164234443833766681362847206994731001414911043109287023555
 const flop3Card = 49;
 const flop3Hash = "3639468522743208840451633774131289835802606952387558348786238478751188008782"; // P(49, 1003)
 const turnCard = 48;
-const turnHash = "30747613039493320745679180783621670933150359188574931733221699170699648328184"; // P(48, 1003)
+const turnHash = "49214131031210055892543999779736725703953186589776906119812339318913166722083"; // P(5, 1003)
 const riverCard = 47;
 const riverHash = "52188306373810188909554202865183694489674105885738453368448548953776311023155"; // P(47, 1003)
+
+function makeCardIdFromPair(cardParams) {
+    return cardParams[0] * 4 + cardParams[1];
+}
+
+function makeCombinationIdFrom5CardHand(cards) {
+    var result = 0;
+    for (let i = 0;i < 5; ++i) {
+        result *= 52;
+        result += cards[4 - i];
+    }
+    return result;
+}
 
 var startGame = async function(contractInstance, player1, player2) {
     await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei});
@@ -70,6 +86,17 @@ var execActionFromConfig = async function(config) {
             config["cardHashes"],
             config["cards"],
             {from: config["player"]});
+        return;
+    }
+
+    if (config["action"] == "submitKeys") {
+        await config["contractInstance"].submitKeys(
+            config["gameId"],
+            config["privatePower"],
+            config["claimedHandCode"],
+            config["claimedCombination"],
+            {from: config["player"]}
+            );
         return;
     }
     assert(false);
@@ -208,14 +235,6 @@ contract("PokerRoom", (accounts) => {
                     "cards": [flop1Card, flop2Card, flop3Card],
                     "cardHashes": [flop1Hash, flop2Hash, flop3Hash]
                 },
-//                {
-//                    "action": "openCards",
-//                    "player": player1,
-//                    "value": 0,
-//                    "gameStateCode": OPEN_FLOP,
-//                    "cards": [0, 0, 0],
-//                    "cardHashes": [0, 0, 0]
-//                },
                 {
                     "action": "makeTurn",
                     "player": player2,
@@ -229,8 +248,64 @@ contract("PokerRoom", (accounts) => {
                     "value": 0,
                     "gameStateCode": FLOP,
                     "actionType": CHECK
-                }
+                },
+                {
+                    "action": "openCards",
+                    "player": player2,
+                    "value": 0,
+                    "gameStateCode": OPEN_TURN,
+                    "cards": [turnCard],
+                    "cardHashes": [turnHash]
+                },
+                {
+                    "action": "makeTurn",
+                    "player": player2,
+                    "value": 0,
+                    "gameStateCode": TURN,
+                    "actionType": CHECK
+                },
+                {
+                    "action": "makeTurn",
+                    "player": player1,
+                    "value": 0,
+                    "gameStateCode": TURN,
+                    "actionType": CHECK
+                },
+                {
+                    "action": "openCards",
+                    "player": player2,
+                    "value": 0,
+                    "gameStateCode": OPEN_RIVER,
+                    "cards": [riverCard],
+                    "cardHashes": [riverHash]
+                },
+                {
+                    "action": "makeTurn",
+                    "player": player2,
+                    "value": 0,
+                    "gameStateCode": RIVER,
+                    "actionType": CHECK
+                },
+                {
+                    "action": "makeTurn",
+                    "player": player1,
+                    "value": 0,
+                    "gameStateCode": RIVER,
+                    "actionType": CHECK
+                },
+                {
+                    "action": "submitKeys",
+                    "player": player2,
+                    "value": 0,
+                    "privatePower": PRIVATE_KEY2,
+                    "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 4, 5]), // hand:(0,2) - 2, (1,0) - 4, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
+                    "claimedCombination": FULL_HOUSE // full house combination: 12x3 + 1x2
+                },
             ]
+
+//                        config["privatePower"],
+//            config["claimedHandCode"],
+//            config["claimedCombination"],
 
             await execGameFromConfig(commonConfig, actionsConfig);
         })

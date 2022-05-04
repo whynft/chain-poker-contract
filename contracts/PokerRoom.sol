@@ -213,7 +213,6 @@ contract PokerRoom is Ownable {
             gameIsExist(gameId)
             gameStateEquals(GameState.DEALING, gameId)
             actionExpectedFromPlayer(gameId) {
-        uint position = player2position[gameId][msg.sender];
         uint nextPosition = (player2position[gameId][msg.sender] + 1) % N_PLAYERS;
         uint256[] memory nextPlayerHashes = new uint256[](N_PRIVATE_CARDS);
         nextPlayerHashes[0] = card1Hash;
@@ -286,8 +285,8 @@ contract PokerRoom is Ownable {
     function openNextCards(
         uint256 gameId,
         uint256 gameStateCode,
-        uint256[3] memory newCardHashes,
-        uint256[3] memory newCards) public
+        uint256[] memory newCardHashes,
+        uint256[] memory newCards) public
             gameIsExist(gameId)
             gameStateEquals(GameState(gameStateCode), gameId)
             actionExpectedFromPlayer(gameId)
@@ -301,12 +300,14 @@ contract PokerRoom is Ownable {
     function updateCardInfo(
         uint256 gameId,
         uint256 gameStateCode,
-        uint256[3] memory newCardHashes,
-        uint256[3] memory newCards
+        uint256[] memory newCardHashes,
+        uint256[] memory newCards
     ) private {
         GameState state = gameState[gameId];
         uint needCards = NEED_CARDS_AT_STATE[state];
         uint offset = OPEN_CARDS_AT_STATE[state];
+        require(newCardHashes.length == newCards.length, "expected same number of cards and hashes");
+        require(newCards.length == needCards, "unexpected number of opened cards at current stage");
         uint256[] storage currentPublicCards = publicCards[gameId];
         uint256[] storage currentPublicCardsHashes = publicCardsHashes[gameId];
         for(uint i = 0;i < needCards; ++i) {
@@ -318,7 +319,11 @@ contract PokerRoom is Ownable {
     }
 
     // HANDSUP
-    function submitKeys(uint256 gameId, uint256 privatePower, uint256 claimedHandCode, uint8 claimedCombination) public {
+    function submitKeys(uint256 gameId, uint256 privatePower, uint256 claimedHandCode, uint8 claimedCombination)
+            gameIsExist(gameId)
+            gameStateEquals(GameState.SHOWDOWN, gameId)
+            actionExpectedFromPlayer(gameId)
+    public {
         uint position = player2position[gameId][msg.sender];
         uint nextPosition = (position + 1) % N_PLAYERS;
         actionExpectedFrom[gameId] = players[gameId][nextPosition];
@@ -338,7 +343,7 @@ contract PokerRoom is Ownable {
             winnerRank[gameId] = currentRank;
             winner[gameId] = msg.sender;
         }
-        if (nextPosition == DEALER_POSITION) {
+        if (position == DEALER_POSITION) {
             gameState[gameId] = GameState.WINNER_CHOOSEN;
             actionExpectedFrom[gameId] = winner[gameId];
         }
