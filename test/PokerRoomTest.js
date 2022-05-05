@@ -99,6 +99,13 @@ var execActionFromConfig = async function(config) {
             );
         return;
     }
+    if (config["action"] == "claimWin") {
+        await config["contractInstance"].claimWin(
+            config["gameId"],
+            {from: config["player"]}
+        );
+        return;
+    }
     assert(false);
 };
 
@@ -277,6 +284,18 @@ contract("PokerRoom", (accounts) => {
                     "privatePower": PRIVATE_KEY2,
                     "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 4, 5]), // hand:(0,2) - 2, (1,0) - 4, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
                     "claimedCombination": FULL_HOUSE // full house combination: 12x3 + 1x2
+                },
+                {
+                    "action": "submitKeys",
+                    "player": player1,
+                    "value": 0,
+                    "privatePower": PRIVATE_KEY1,
+                    "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 47, 5]), // hand:(0,0) - 0, (0,1) - 1, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
+                    "claimedCombination": SET // set combination: 12x3 + 47x1 + 5x1
+                },
+                {
+                    "action": "claimWin",
+                    "player": player2
                 }
             ]
 
