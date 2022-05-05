@@ -2,17 +2,17 @@ const utils = require("./utils");
 const PokerRoom = artifacts.require("PokerRoom");
 
 const defaultFeeWei = 2500000000000000;
-const defaultPrimeModulo =  "57896044618658097711785492504343953926634992332820282019728792003956564819937"; // 2 ^ 555 - 31
+const defaultPrimeModulo =  "340282366920938463463374607431768211297"; // 2 ^ 128 - 159
 
 const defaultSmallBlind = 10 * defaultFeeWei;
 
 const PRIVATE_KEY1 = 1003;
 const PRIVATE_KEY2 = 725;
 
-const player1Card1Hash = "13159035226703211890654003961158071376254143192955391095350192585677108936704"; // P(0, 1003)
-const player1Card2Hash = "37878010719124385700487666027363824721736664517050548994860851193330156557245"; // P(1, 1003)
-const player2Card1Hash = "1371063945196131339848710285958978166078362773706306138144768"; // P(2, 725)
-const player2Card2Hash = "41430621872242563686864929739397623096781312338139806270879406045932151681544"; // P2(4, 725)
+const player1Card1Hash = "205381139980068277633160390919071830822"; // P1(0, 1003)
+const player1Card2Hash = "102556355728778912194778419807133212971"; // P1(1, 1003)
+const player2Card1Hash = "7221512800809898655060050269947559936"; // P2(2, 725)
+const player2Card2Hash = "123847454697520124946205291478140896941"; // P2(4, 725)
 
 const gameId = 0;
 
@@ -37,15 +37,15 @@ const CALL = 2;
 const RAISE = 3;
 
 const flop1Card = 51;
-const flop1Hash = "36269910134637692301191280936545014088062668828491852538865721109308595924584"; // P(51, 1003)
+const flop1Hash = "300891920437880970838369362784543108170"; // P(51, 1003)
 const flop2Card = 50;
-const flop2Hash = "34381642344438337666813628472069947310014149110431092870235554744912971285930"; // P(50, 1003)
+const flop2Hash = "100343920168981772056721231748499674163"; // P(50, 1003)
 const flop3Card = 49;
-const flop3Hash = "3639468522743208840451633774131289835802606952387558348786238478751188008782"; // P(49, 1003)
-const turnCard = 48;
-const turnHash = "49214131031210055892543999779736725703953186589776906119812339318913166722083"; // P(5, 1003)
+const flop3Hash = "205895857969606427066682613779702939114"; // P(49, 1003)
+const turnCard = 5;
+const turnHash = "98602134968864167172559311264648553796"; // P(5, 1003)
 const riverCard = 47;
-const riverHash = "52188306373810188909554202865183694489674105885738453368448548953776311023155"; // P(47, 1003)
+const riverHash = "291835422713370007735409061104409365296"; // P(47, 1003)
 
 function makeCardIdFromPair(cardParams) {
     return cardParams[0] * 4 + cardParams[1];
@@ -113,29 +113,6 @@ var execGameFromConfig = async function(commonConfig, actions) {
         );
         await execActionFromConfig(action);
     }
-};
-
-var runGameFromConfig = async function(contractInstance, player1, player2, actionsConfig, cardsConfig, betConfig) {
-    await startGame(contractInstance, player1, player2);
-    await submitHashes(contractInstance, player1, player2, player1Card1Hash, player1Card2Hash, player2Card1Hash, player2Card2Hash);
-//    PREFLOP
-    await contractInstance.makeTurn(gameId, PREFLOP, actionsConfig.PREFLOP[0], {from: player2, value: betConfig.PREFLOP[0]});
-    await contractInstance.makeTurn(gameId, PREFLOP, actionsConfig.PREFLOP[1], {from: player1, value: betConfig.PREFLOP[1]});
-//    await submitRound(contractInstance, player1, player2, PREFLOP, actionsConfig.PREFLOP[0], actionsConfig.PREFLOP[1], betConfig.PREFLOP);
-//    OPEN_FLOP
-    await openCards(contractInstance, player1, player2, OPEN_FLOP, cardsConfig.OPEN_FLOP["hashes"], cardsConfig.OPEN_FLOP["cards"]);
-////    FLOP
-    await submitRound(contractInstance, player1, player2, FLOP, actionsConfig.FLOP[0], actionsConfig.FLOP[1], betConfig.FLOP);
-////    OPEN_TURN
-//    await openCards(contractInstance, player1, player2,  OPEN_TURN, cardsConfig.OPEN_TURN["hashes"], cardsConfig.OPEN_TURN["cards"]);
-////    TURN
-//    await submitRound(contractInstance, player1, player2,  TURN, actionsConfig.TURN[0], actionsConfig.TURN[1], betConfig.TURN);
-////    OPEN_RIVER
-//    await openCards(contractInstance, player1, player2,  OPEN_RIVER, cardsConfig.OPEN_RIVER["hashes"], cardsConfig.OPEN_RIVER["cards"]);
-////    RIVER
-//    await submitRound(contractInstance, player1, player2,  RIVER, actionsConfig.RIVER[0], actionsConfig.RIVER[1], betConfig.RIVER);
-//    SHOWDOWN
-//    WINNER_CHOOSEN
 };
 
 contract("PokerRoom", (accounts) => {
@@ -300,7 +277,7 @@ contract("PokerRoom", (accounts) => {
                     "privatePower": PRIVATE_KEY2,
                     "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 4, 5]), // hand:(0,2) - 2, (1,0) - 4, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
                     "claimedCombination": FULL_HOUSE // full house combination: 12x3 + 1x2
-                },
+                }
             ]
 
 //                        config["privatePower"],

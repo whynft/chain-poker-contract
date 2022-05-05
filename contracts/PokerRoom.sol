@@ -319,11 +319,11 @@ contract PokerRoom is Ownable {
     }
 
     // HANDSUP
-    function submitKeys(uint256 gameId, uint256 privatePower, uint256 claimedHandCode, uint8 claimedCombination)
+    function submitKeys(uint256 gameId, uint256 privatePower, uint256 claimedHandCode, uint8 claimedCombination) public
             gameIsExist(gameId)
             gameStateEquals(GameState.SHOWDOWN, gameId)
             actionExpectedFromPlayer(gameId)
-    public {
+    {
         uint position = player2position[gameId][msg.sender];
         uint nextPosition = (position + 1) % N_PLAYERS;
         actionExpectedFrom[gameId] = players[gameId][nextPosition];
@@ -336,8 +336,8 @@ contract PokerRoom is Ownable {
         for (uint i = 0;i < N_PUBLIC_CARDS; ++i) {
             gamePublicCards[i] = publicCards[gameId][i];
         }
-        require(PokerUtils.checkClaimedHandWithPrivate(claimedHandCode, gamePublicCards, privateCards));
-        require(PokerUtils.checkClaimedCombination(claimedHandCode, claimedCombination));
+        require(PokerUtils.checkClaimedHandWithPrivate(claimedHandCode, gamePublicCards, privateCards), "wrong claimed hand");
+        require(PokerUtils.checkClaimedCombination(claimedHandCode, claimedCombination), "wrong combination");
         uint256 currentRank = PokerUtils.calcHandRank(claimedHandCode, claimedCombination);
         if (currentRank > winnerRank[gameId]) {
             winnerRank[gameId] = currentRank;
