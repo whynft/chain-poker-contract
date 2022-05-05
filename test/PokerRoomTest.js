@@ -66,8 +66,8 @@ var startGame = async function(contractInstance, player1, player2) {
 };
 
 var submitHashes = async function(contractInstance, player1, player2, p1c1h, p1c2h, p2c1h, p2c2h) {
-    await contractInstance.provideCardHashesForDealing(gameId, p1c1h, p1c2h, {from: player1});
-    await contractInstance.provideCardHashesForDealing(gameId, p2c1h, p2c2h, {from: player2});
+    await contractInstance.provideCardHashesForDealing(gameId, p2c1h, p2c2h, {from: player1});
+    await contractInstance.provideCardHashesForDealing(gameId, p1c1h, p1c2h, {from: player2});
 };
 
 var execActionFromConfig = async function(config) {
