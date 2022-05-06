@@ -180,7 +180,6 @@ contract("PokerRoom", (accounts) => {
         })
         it("Start game", async () => {
             const result = await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei}); // should be OK
-            assert.equal(result.result, 0, "id of first created game should be zero");
             await utils.shouldThrow(contractInstance.enterGame(gameId, {from: player2})); // try to enter without fee
             await utils.shouldThrow(contractInstance.enterGame(1, {from: player2, value: defaultSmallBlind + defaultFeeWei})); // try to enter not existed game
             await utils.shouldThrow(contractInstance.enterGame(gameId, {from: player1, value: defaultSmallBlind + defaultFeeWei})); // try to enter game twice
