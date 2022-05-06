@@ -369,13 +369,17 @@ contract PokerRoom is Ownable {
             totalPot += pots[gameId][i];
         }
         payable(msg.sender).transfer(totalPot);
+        actionExpectedFrom[gameId] = address(0);
     }
 
     // DRAW_ANNOUNCED
     function claimDraw(uint256 gameId) public payable
             gameIsExist(gameId)
             gameStateEquals(GameState.DRAW_ANNOUNCED, gameId) {
-        payable(msg.sender).transfer(pots[gameId][0]);
+        uint position = player2position[gameId][msg.sender];
+        require(pots[gameId][position] > 0, "this player has already claimed draw");
+        payable(msg.sender).transfer(pots[gameId][position]);
+        pots[gameId][position] = 0;
     }
 }
 

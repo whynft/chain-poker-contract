@@ -135,9 +135,32 @@ var execGameFromConfig = async function(commonConfig, actions) {
 contract("PokerRoom", (accounts) => {
     let [owner, player1, player2, player3] = accounts;
     let contractInstance;
+    let defaultGameActionConfig;
 
     beforeEach(async () => {
         contractInstance = await PokerRoom.new(defaultFeeWei, defaultPrimeModulo, {from: owner});
+        defaultGameActionConfig = [
+                { "action": "makeTurn", "player": player2, "value": defaultSmallBlind, "gameStateCode": PREFLOP, "actionType": CALL },
+                { "action": "makeTurn", "player": player1, "value": 0, "gameStateCode": PREFLOP, "actionType": CHECK },
+                { "action": "openCards", "player": player2, "value": 0, "gameStateCode": OPEN_FLOP, "cards": [flop1Card, flop2Card, flop3Card], "cardHashes": [flop1Hash, flop2Hash, flop3Hash] },
+                { "action": "makeTurn", "player": player2, "value": 0, "gameStateCode": FLOP, "actionType": CHECK },
+                { "action": "makeTurn", "player": player1, "value": 0, "gameStateCode": FLOP, "actionType": CHECK },
+                { "action": "openCards", "player": player2, "value": 0, "gameStateCode": OPEN_TURN, "cards": [turnCard], "cardHashes": [turnHash] },
+                { "action": "makeTurn", "player": player2, "value": 0, "gameStateCode": TURN, "actionType": CHECK },
+                { "action": "makeTurn", "player": player1, "value": 0, "gameStateCode": TURN, "actionType": CHECK },
+                { "action": "openCards", "player": player2, "value": 0, "gameStateCode": OPEN_RIVER, "cards": [riverCard], "cardHashes": [riverHash] },
+                { "action": "makeTurn", "player": player2, "value": 0, "gameStateCode": RIVER, "actionType": CHECK },
+                { "action": "makeTurn", "player": player1, "value": 0, "gameStateCode": RIVER, "actionType": CHECK },
+                { "action": "submitKeys", "player": player2, "value": 0, "privatePower": PRIVATE_KEY2,
+                    "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 4, 5]), // hand:(0,2) - 2, (1,0) - 4, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
+                    "claimedCombination": FULL_HOUSE // full house combination: 12x3 + 1x2
+                },
+                { "action": "submitKeys", "player": player1, "value": 0, "privatePower": PRIVATE_KEY1,
+                    "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 47, 5]), // hand:(0,0) - 0, (0,1) - 1, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
+                    "claimedCombination": SET // set combination: 12x3 + 47x1 + 5x1
+                },
+                { "action": "claimWin", "player": player2 }
+            ]
     });
 
     context("Primitive checks", async () => {
@@ -179,84 +202,11 @@ contract("PokerRoom", (accounts) => {
                 "players": [player1, player2]
             }
 
-            const actionsConfig = [
-                { "action": "makeTurn", "player": player2, "value": defaultSmallBlind, "gameStateCode": PREFLOP, "actionType": CALL },
-                { "action": "makeTurn", "player": player1, "value": 0, "gameStateCode": PREFLOP, "actionType": CHECK },
-                { "action": "openCards", "player": player2, "value": 0, "gameStateCode": OPEN_FLOP, "cards": [flop1Card, flop2Card, flop3Card], "cardHashes": [flop1Hash, flop2Hash, flop3Hash] },
-                { "action": "makeTurn", "player": player2, "value": 0, "gameStateCode": FLOP, "actionType": CHECK },
-                {
-                    "action": "makeTurn",
-                    "player": player1,
-                    "value": 0,
-                    "gameStateCode": FLOP,
-                    "actionType": CHECK
-                },
-                {
-                    "action": "openCards",
-                    "player": player2,
-                    "value": 0,
-                    "gameStateCode": OPEN_TURN,
-                    "cards": [turnCard],
-                    "cardHashes": [turnHash]
-                },
-                {
-                    "action": "makeTurn",
-                    "player": player2,
-                    "value": 0,
-                    "gameStateCode": TURN,
-                    "actionType": CHECK
-                },
-                {
-                    "action": "makeTurn",
-                    "player": player1,
-                    "value": 0,
-                    "gameStateCode": TURN,
-                    "actionType": CHECK
-                },
-                {
-                    "action": "openCards",
-                    "player": player2,
-                    "value": 0,
-                    "gameStateCode": OPEN_RIVER,
-                    "cards": [riverCard],
-                    "cardHashes": [riverHash]
-                },
-                {
-                    "action": "makeTurn",
-                    "player": player2,
-                    "value": 0,
-                    "gameStateCode": RIVER,
-                    "actionType": CHECK
-                },
-                {
-                    "action": "makeTurn",
-                    "player": player1,
-                    "value": 0,
-                    "gameStateCode": RIVER,
-                    "actionType": CHECK
-                },
-                {
-                    "action": "submitKeys",
-                    "player": player2,
-                    "value": 0,
-                    "privatePower": PRIVATE_KEY2,
-                    "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 4, 5]), // hand:(0,2) - 2, (1,0) - 4, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
-                    "claimedCombination": FULL_HOUSE // full house combination: 12x3 + 1x2
-                },
-                {
-                    "action": "submitKeys",
-                    "player": player1,
-                    "value": 0,
-                    "privatePower": PRIVATE_KEY1,
-                    "claimedHandCode": makeCombinationIdFrom5CardHand([49, 50, 51, 47, 5]), // hand:(0,0) - 0, (0,1) - 1, table: (1, 1) - 5, (11, 3) - 47, (12, 1) - 49, (12, 2) - 50, (12, 3) - 51
-                    "claimedCombination": SET // set combination: 12x3 + 47x1 + 5x1
-                },
-                {
-                    "action": "claimWin",
-                    "player": player2
-                }
-            ]
-            await execGameFromConfig(commonConfig, actionsConfig);
+            await execGameFromConfig(commonConfig, defaultGameActionConfig);
+            await utils.shouldThrow(contractInstance.claimWin(gameId, {from: player2})); // claim win twice
+            await utils.shouldThrow(contractInstance.claimWin(gameId, {from: player1})); // winner has been already announced
+            await utils.shouldThrow(contractInstance.claimDraw(gameId, {from: player2})); // draw is not announced
+            await utils.shouldThrow(contractInstance.claimDraw(gameId, {from: player1})); // draw is not announced
         })
         it("run game with fold", async () => {
             const commonConfig = {
@@ -438,6 +388,10 @@ contract("PokerRoom", (accounts) => {
                 }
             ]
             await execGameFromConfig(commonConfig, actionsConfig);
+            await utils.shouldThrow(contractInstance.claimWin(gameId, {from: player2})); // winner is not announced
+            await utils.shouldThrow(contractInstance.claimWin(gameId, {from: player1})); // winner is not announced
+            await utils.shouldThrow(contractInstance.claimDraw(gameId, {from: player2})); // can't claim draw twice
+            await utils.shouldThrow(contractInstance.claimDraw(gameId, {from: player1})); // can't claim draw twice
         })
     })
 
