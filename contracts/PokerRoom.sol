@@ -25,7 +25,8 @@ contract PokerRoom is Ownable {
         OPEN_RIVER,
         RIVER,
         SHOWDOWN,
-        WINNER_CHOOSEN
+        WINNER_ANNOUNCED,
+        DRAW_ANNOUNCED
     }
 
     enum ActionType {
@@ -35,6 +36,7 @@ contract PokerRoom is Ownable {
         RAISE
     }
 
+    event UpdateMoneyInPot(uint256 gameId, address player, uint position, uint256 newValue);
     event CreateGame(uint256 gameId, address player, uint256 smallBlind);
     event EnterGame(uint256 gameid, address player, uint position);
     event MakeTurn(uint256 gameId, address player, uint position ,ActionType action, GameState state, uint256 value);
@@ -195,6 +197,8 @@ contract PokerRoom is Ownable {
         }
         pots[gameId][position] = pot;
 
+        emit UpdateMoneyInPot(gameId, msg.sender, position, pot);
+
         if (players[gameId].length == N_PLAYERS) {
             gameState[gameId] = GameState.DEALING;
             actionExpectedFrom[gameId] = players[gameId][DEALER_POSITION];
@@ -249,7 +253,7 @@ contract PokerRoom is Ownable {
         emit MakeTurn(gameId, msg.sender, position, ActionType(actionTypeCode), GameState(gameStateCode), msg.value);
 
         if (action == ActionType.FOLD) {
-            gameState[gameId] = GameState.WINNER_CHOOSEN;
+            gameState[gameId] = GameState.WINNER_ANNOUNCED;
             actionExpectedFrom[gameId] =  players[gameId][nextPosition];
             return;
         }
@@ -258,13 +262,15 @@ contract PokerRoom is Ownable {
             require(msg.value + 2 * pots[gameId][position] >= 2 * maxPot[gameId],
                 "Reraise should be at least the same as sum of previous raises at this round");
             maxPot[gameId] = msg.value + pots[gameId][position];
-            return;
+            pots[gameId][position] = maxPot[gameId];
+            emit UpdateMoneyInPot(gameId, msg.sender, position, pots[gameId][position]);
         }
 
         if (action == ActionType.CALL) {
             require(maxPot[gameId] > pots[gameId][position], "expect call is needed");
-            require(maxPot[gameId] <= pots[gameId][position] + msg.value, "not enough value for calling");
+            require(maxPot[gameId] == pots[gameId][position] + msg.value, "unexpected value for calling");
             pots[gameId][position] = maxPot[gameId];
+            emit UpdateMoneyInPot(gameId, msg.sender, position, pots[gameId][position]);
         }
 
         if (action == ActionType.CHECK) {
@@ -339,26 +345,37 @@ contract PokerRoom is Ownable {
         require(PokerUtils.checkClaimedHandWithPrivate(claimedHandCode, gamePublicCards, privateCards), "wrong claimed hand");
         require(PokerUtils.checkClaimedCombination(claimedHandCode, claimedCombination), "wrong combination");
         uint256 currentRank = PokerUtils.calcHandRank(claimedHandCode, claimedCombination);
+        if (currentRank == winnerRank[gameId] && winner[gameId] != address(0)) {
+            gameState[gameId] = GameState.DRAW_ANNOUNCED;
+            return;
+        }
         if (currentRank > winnerRank[gameId]) {
             winnerRank[gameId] = currentRank;
             winner[gameId] = msg.sender;
         }
         if (position == DEALER_POSITION) {
-            gameState[gameId] = GameState.WINNER_CHOOSEN;
+            gameState[gameId] = GameState.WINNER_ANNOUNCED;
             actionExpectedFrom[gameId] = winner[gameId];
         }
     }
 
-    // WINNER_CHOOSEN
+    // WINNER_ANNOUNCED
     function claimWin(uint256 gameId) public payable
             gameIsExist(gameId)
-            gameStateEquals(GameState.WINNER_CHOOSEN, gameId)
+            gameStateEquals(GameState.WINNER_ANNOUNCED, gameId)
             actionExpectedFromPlayer(gameId) {
         uint256 totalPot = 0;
         for (uint i = 0;i < N_PLAYERS; ++i) {
             totalPot += pots[gameId][i];
         }
         payable(msg.sender).transfer(totalPot);
+    }
+
+    // DRAW_ANNOUNCED
+    function claimDraw(uint256 gameId) public payable
+            gameIsExist(gameId)
+            gameStateEquals(GameState.DRAW_ANNOUNCED, gameId) {
+        payable(msg.sender).transfer(pots[gameId][0]);
     }
 }
 
