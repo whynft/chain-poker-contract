@@ -2,6 +2,7 @@ const utils = require("./utils");
 const PokerRoom = artifacts.require("PokerRoom");
 
 const defaultFeeWei = 2500000000000000;
+
 const defaultPrimeModulo =  "340282366920938463463374607431768211297"; // 2 ^ 128 - 159
 
 const defaultSmallBlind = 10 * defaultFeeWei;
@@ -178,13 +179,21 @@ contract("PokerRoom", (accounts) => {
             const cipherModulo = await contractInstance.cipherModulo();
             assert.equal(cipherModulo, defaultPrimeModulo);
         })
-        it("Start game", async () => {
+        it("Start one game", async () => {
             const result = await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei}); // should be OK
             await utils.shouldThrow(contractInstance.enterGame(gameId, {from: player2})); // try to enter without fee
             await utils.shouldThrow(contractInstance.enterGame(1, {from: player2, value: defaultSmallBlind + defaultFeeWei})); // try to enter not existed game
             await utils.shouldThrow(contractInstance.enterGame(gameId, {from: player1, value: defaultSmallBlind + defaultFeeWei})); // try to enter game twice
             await contractInstance.enterGame(gameId, {from: player2, value: defaultSmallBlind + defaultFeeWei}); // should be OK
             await utils.shouldThrow(contractInstance.enterGame(gameId, {from: player3, value: defaultSmallBlind + defaultFeeWei})); // try to enter full game
+        })
+        it("Start many games", async () => {
+            const result0 = await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei});
+            await contractInstance.enterGame(gameId, {from: player2, value: defaultSmallBlind + defaultFeeWei});
+            const result1 = await contractInstance.createGame({from: player2, value: 4 * defaultSmallBlind + defaultFeeWei});
+            await contractInstance.enterGame(gameId + 1, {from: player1, value: 2 * defaultSmallBlind + defaultFeeWei});
+            const result2 = await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei});
+            const result3 = await contractInstance.createGame({from: player1, value: 2 * defaultSmallBlind + defaultFeeWei});
         })
         it("Submit hashes", async () => {
             await startGame(contractInstance, player1, player2);

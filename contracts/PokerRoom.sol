@@ -146,6 +146,7 @@ contract PokerRoom is Ownable {
 
     function createGame() public payable costs(gameFee) returns(uint256) {
         uint256 newGameId = _gameCount.current();
+        _gameCount.increment();
         uint256 bigBlind = msg.value - gameFee;
         uint256 smallBlind = bigBlind / 2;
 
