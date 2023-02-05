@@ -20,6 +20,7 @@
 require('dotenv').config();
 
 const HDWalletProvider = require('@truffle/hdwallet-provider');
+const privateKey = process.env.PRIVATE_KEY || 'foo';
 
 module.exports = {
   /**
@@ -35,12 +36,19 @@ module.exports = {
   networks: {
     rinkeby: {
       provider: function () {
-        const privateKey = process.env.PRIVATE_KEY || 'foo';
-        const infuraKey = process.env.INFURA_KEY || 'foo';
-        return new HDWalletProvider(privateKey, "https://rinkeby.infura.io/v3/" + infuraKey);
+        const rinkeby_rpc = process.env.RINKEBY_RPC || 'foo';
+        return new HDWalletProvider(privateKey, rinkeby_rpc);
       },
-      // Network id is 4 for Rinkeby
+      // Network id is 4 for Rinkeby.
       network_id: 4
+    },
+    localhost: {
+      provider: function () {
+        const localhost_rpc = process.env.LOCALHOST_RPC || 'foo';
+        return new HDWalletProvider(privateKey, localhost_rpc);
+      },
+      // Network id for localhost network may vary: check logs when network created, or on failure.
+        network_id: process.env.LOCALHOST_NETWORK_ID || 5777
     },
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.

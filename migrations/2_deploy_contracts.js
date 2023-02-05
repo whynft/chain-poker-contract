@@ -6,8 +6,7 @@ const defaultPrimeModulo =  "340282366920938463463374607431768211297"; // 2 ^ 12
 
 
 module.exports = function (deployer) {
-    deployer.deploy(PokerUtils).then(() => {
-        deployer.deploy(PokerRoom, defaultFeeWei, defaultPrimeModulo);
-    });
+    deployer.deploy(PokerUtils);
     deployer.link(PokerUtils, PokerRoom);
+    deployer.deploy(PokerRoom, defaultFeeWei, defaultPrimeModulo);
 };

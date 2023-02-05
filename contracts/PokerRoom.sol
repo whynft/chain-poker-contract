@@ -176,6 +176,7 @@ contract PokerRoom is Ownable {
         return newGameId;
     }
 
+//    TODO: rename to join
     function enterGame(uint256 gameId) public payable
             gameIsExist(gameId)
             gameStateEquals(GameState.WAITING, gameId)
