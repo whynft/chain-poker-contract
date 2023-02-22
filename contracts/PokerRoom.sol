@@ -39,6 +39,7 @@ contract PokerRoom is Ownable {
     event UpdateMoneyInPot(uint256 gameId, address player, uint position, uint256 newValue);
     event CreateGame(uint256 gameId, address player, uint256 smallBlind);
     event EnterGame(uint256 gameid, address player, uint position);
+    event ProvideCardHashesForDealing(uint256 indexed gameId, address indexed from, uint256 card1Hash, uint256 card2Hash);
     event MakeTurn(uint256 gameId, address player, uint position ,ActionType action, GameState state, uint256 value);
     event OpenPublicCards(uint256 gameId, address player, GameState state, uint256[] publicCards);
     event OpenPrivateCards(uint256 gameId, address player, uint position);
@@ -235,6 +236,8 @@ contract PokerRoom is Ownable {
             gameState[gameId] = GameState.PREFLOP;
             actionExpectedFrom[gameId] = players[gameId][(BIG_BLIND_POSITION + 1) % N_PLAYERS];
         }
+
+        emit ProvideCardHashesForDealing(gameId, msg.sender, card1Hash, card2Hash);
     }
 
     // PREFLOP
