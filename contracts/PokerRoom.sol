@@ -6,13 +6,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import './PokerUtils.sol';
 
 contract PokerRoom is Ownable {
-    uint private constant N_PLAYERS = 2;
-    uint private constant N_PRIVATE_CARDS = 2;
-    uint private constant N_PUBLIC_CARDS = 5;
-
-    uint private constant DEALER_POSITION = 0;
-    uint private constant SMALL_BLIND_POSITION = 1;
-    uint private constant BIG_BLIND_POSITION = 2;
+//    TODO: reorder to save mem.
 
     enum GameState {
         WAITING,
@@ -36,49 +30,46 @@ contract PokerRoom is Ownable {
         RAISE
     }
 
-    event UpdateMoneyInPot(uint256 gameId, address player, uint position, uint256 newValue);
-    event CreateGame(uint256 gameId, address player, uint256 smallBlind);
-    event EnterGame(uint256 gameid, address player, uint position);
-    event ProvideCardHashesForDealing(uint256 indexed gameId, address indexed from, uint256 card1Hash, uint256 card2Hash);
-    event MakeTurn(uint256 gameId, address player, uint position ,ActionType action, GameState state, uint256 value);
-    event OpenPublicCards(uint256 gameId, address player, GameState state, uint256[] publicCards);
-    event OpenPrivateCards(uint256 gameId, address player, uint position);
-
-    mapping(GameState => uint8) NEED_CARDS_AT_STATE;
-    mapping(GameState => uint8) OPEN_CARDS_AT_STATE;
-
     using Counters for Counters.Counter;
-    Counters.Counter private _gameCount;
 
     uint256 public cipherModulo;
     uint256 public gameFee;
+    uint256[] public maxPot;
+    uint256[][] public publicCards;
+    GameState[] public gameState; // TODO stateS
+    address[] public actionExpectedFrom;
+
+    Counters.Counter private _gameCount;
+
+    uint private constant N_PLAYERS = 2;
+    uint private constant N_PRIVATE_CARDS = 2;
+    uint private constant N_PUBLIC_CARDS = 5;
+
+    uint private constant DEALER_POSITION = 0;
+    uint private constant SMALL_BLIND_POSITION = 1;
+    uint private constant BIG_BLIND_POSITION = 2;
 
     address[][] private players;
+    address[] private winner;
+
     uint256[][][] private cardHashes;
     uint256[] private smallBlinds;
-    uint256[] private maxPot;
-    address[] private winner;
     uint256[] private winnerRank;
-    uint256[][] private publicCards;
     uint256[][] private publicCardsHashes;
     uint256[][] private pots;
-    uint[] private roundNumbers;
-    GameState[] private gameState;
-    address[] private actionExpectedFrom;
+    uint256[] private roundNumbers;
+
+    mapping(GameState => uint8) NEED_CARDS_AT_STATE;
+    mapping(GameState => uint8) OPEN_CARDS_AT_STATE;
     mapping(uint => mapping(address => uint)) private player2position;
 
-
-    constructor(uint256 gameFee_, uint256 cipherModulo_) {
-        gameFee = gameFee_;
-        cipherModulo = cipherModulo_;
-        OPEN_CARDS_AT_STATE[GameState.OPEN_FLOP] = 3;
-        OPEN_CARDS_AT_STATE[GameState.OPEN_TURN] = 4;
-        OPEN_CARDS_AT_STATE[GameState.OPEN_RIVER] = 5;
-
-        NEED_CARDS_AT_STATE[GameState.OPEN_FLOP] = 3;
-        NEED_CARDS_AT_STATE[GameState.OPEN_TURN] = 1;
-        NEED_CARDS_AT_STATE[GameState.OPEN_RIVER] = 1;
-    }
+    event UpdateMoneyInPot(uint256 gameId, address player, uint position, uint256 newValue);
+    event CreateGame(uint256 indexed gameId, address player, uint256 smallBlind);
+    event EnterGame(uint256 indexed gameId, address player, uint position);
+    event ProvideCardHashesForDealing(uint256 indexed gameId, address indexed from, uint256 card1Hash, uint256 card2Hash);
+    event MakeTurn(uint256 indexed gameId, address indexed player, uint position, ActionType indexed action, GameState state, uint256 value);
+    event OpenPublicCards(uint256 indexed gameId, address player, GameState state, uint256[] publicCards);
+    event OpenPrivateCards(uint256 indexed gameId, address player, uint position);
 
     modifier costs(uint price) {
         require(msg.value >= gameFee, "msg.value should be more or equal than price");
@@ -117,7 +108,6 @@ contract PokerRoom is Ownable {
         _;
     }
 
-
     modifier canJoinGame(uint256 gameId) {
         require(gameState[gameId] == GameState.WAITING, "game has already started");
         for (uint i = 0; i < players[gameId].length; ++i) {
@@ -131,6 +121,23 @@ contract PokerRoom is Ownable {
             require(msg.value >= gameFee + 2 * smallBlinds[gameId], "need more money for bigBlind");
         }
         _;
+    }
+
+    constructor(uint256 gameFee_, uint256 cipherModulo_) {
+        gameFee = gameFee_;
+        cipherModulo = cipherModulo_;
+        OPEN_CARDS_AT_STATE[GameState.OPEN_FLOP] = 3;
+        OPEN_CARDS_AT_STATE[GameState.OPEN_TURN] = 4;
+        OPEN_CARDS_AT_STATE[GameState.OPEN_RIVER] = 5;
+
+        NEED_CARDS_AT_STATE[GameState.OPEN_FLOP] = 3;
+        NEED_CARDS_AT_STATE[GameState.OPEN_TURN] = 1;
+        NEED_CARDS_AT_STATE[GameState.OPEN_RIVER] = 1;
+    }
+
+    // TODO: make public and give a use in contract.
+    function getPlayerPot(uint256 _gameId, uint256 _position) external view returns(uint256) {
+        return pots[_gameId][_position];
     }
 
     function setGameFee(uint256 gameFee_) public onlyOwner {
@@ -150,8 +157,6 @@ contract PokerRoom is Ownable {
         _gameCount.increment();
         uint256 bigBlind = msg.value - gameFee;
         uint256 smallBlind = bigBlind / 2;
-
-        emit CreateGame(newGameId, msg.sender, smallBlind);
 
         smallBlinds.push(smallBlind);
         maxPot.push(0);
@@ -174,6 +179,8 @@ contract PokerRoom is Ownable {
         cardHashes.push(hashes);
         gameState.push(GameState.WAITING);
         enterGame(newGameId);
+
+        emit CreateGame(newGameId, msg.sender, smallBlind);
         return newGameId;
     }
 
@@ -185,8 +192,6 @@ contract PokerRoom is Ownable {
         uint position = players[gameId].length;
         player2position[gameId][msg.sender] = position;
         players[gameId].push(msg.sender);
-
-        emit EnterGame(gameId, msg.sender, position);
 
         uint256 pot = 0;
         if (position == SMALL_BLIND_POSITION) {
@@ -200,12 +205,13 @@ contract PokerRoom is Ownable {
         }
         pots[gameId][position] = pot;
 
-        emit UpdateMoneyInPot(gameId, msg.sender, position, pot);
-
         if (players[gameId].length == N_PLAYERS) {
             gameState[gameId] = GameState.DEALING;
             actionExpectedFrom[gameId] = players[gameId][DEALER_POSITION];
         }
+
+        emit EnterGame(gameId, msg.sender, position);
+        emit UpdateMoneyInPot(gameId, msg.sender, position, pot);
     }
 
     // DEALING:
@@ -255,8 +261,6 @@ contract PokerRoom is Ownable {
 
         ActionType action = ActionType(actionTypeCode);
 
-        emit MakeTurn(gameId, msg.sender, position, ActionType(actionTypeCode), GameState(gameStateCode), msg.value);
-
         if (action == ActionType.FOLD) {
             gameState[gameId] = GameState.WINNER_ANNOUNCED;
             actionExpectedFrom[gameId] =  players[gameId][nextPosition];
@@ -286,6 +290,8 @@ contract PokerRoom is Ownable {
         if (position == DEALER_POSITION && maxPot[gameId] == pots[gameId][nextPosition]) {
             gameState[gameId] = GameState(gameStateCode + 1);
         }
+
+        emit MakeTurn(gameId, msg.sender, position, ActionType(actionTypeCode), GameState(gameStateCode), msg.value);
     }
 
     // OPEN_FLOP
@@ -306,27 +312,6 @@ contract PokerRoom is Ownable {
         actionExpectedFrom[gameId] = players[gameId][position];
         updateCardInfo(gameId, gameStateCode, newCardHashes, newCards);
         gameState[gameId] = GameState(gameStateCode + 1);
-    }
-
-    function updateCardInfo(
-        uint256 gameId,
-        uint256 gameStateCode,
-        uint256[] memory newCardHashes,
-        uint256[] memory newCards
-    ) private {
-        GameState state = gameState[gameId];
-        uint needCards = NEED_CARDS_AT_STATE[state];
-        uint offset = OPEN_CARDS_AT_STATE[state];
-        require(newCardHashes.length == newCards.length, "expected same number of cards and hashes");
-        require(newCards.length == needCards, "unexpected number of opened cards at current stage");
-        uint256[] storage currentPublicCards = publicCards[gameId];
-        uint256[] storage currentPublicCardsHashes = publicCardsHashes[gameId];
-        for(uint i = 0;i < needCards; ++i) {
-            uint pos = offset - 1 - i;
-            currentPublicCards[pos] = newCards[i];
-            currentPublicCardsHashes[pos] = newCardHashes[i];
-        }
-        emit OpenPublicCards(gameId, msg.sender, GameState(gameStateCode), currentPublicCards);
     }
 
     // HANDSUP
@@ -385,6 +370,27 @@ contract PokerRoom is Ownable {
         require(pots[gameId][position] > 0, "this player has already claimed draw");
         payable(msg.sender).transfer(pots[gameId][position]);
         pots[gameId][position] = 0;
+    }
+
+    function updateCardInfo(
+        uint256 gameId,
+        uint256 gameStateCode,
+        uint256[] memory newCardHashes,
+        uint256[] memory newCards
+    ) private {
+        GameState state = gameState[gameId];
+        uint needCards = NEED_CARDS_AT_STATE[state];
+        uint offset = OPEN_CARDS_AT_STATE[state];
+        require(newCardHashes.length == newCards.length, "expected same number of cards and hashes");
+        require(newCards.length == needCards, "unexpected number of opened cards at current stage");
+        uint256[] storage currentPublicCards = publicCards[gameId];
+        uint256[] storage currentPublicCardsHashes = publicCardsHashes[gameId];
+        for(uint i = 0;i < needCards; ++i) {
+            uint pos = offset - 1 - i;
+            currentPublicCards[pos] = newCards[i];
+            currentPublicCardsHashes[pos] = newCardHashes[i];
+        }
+        emit OpenPublicCards(gameId, msg.sender, GameState(gameStateCode), currentPublicCards);
     }
 }
 
