@@ -135,6 +135,10 @@ contract PokerRoom is Ownable {
         NEED_CARDS_AT_STATE[GameState.OPEN_RIVER] = 1;
     }
 
+    function getPublicCards(uint256 _gameId) external view returns (uint256[] memory) {
+        return publicCards[_gameId];
+    }
+
     // TODO: make public and give a use in contract.
     function getPlayerPot(uint256 _gameId, uint256 _position) external view returns(uint256) {
         return pots[_gameId][_position];
